@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://sovereignpatia.com";
+  const baseUrl = "https://sovereign.pixorastudios.com";
   const routes = ["", "/about", "/menu", "/nights", "/gallery", "/reserve", "/contact"];
 
   return routes.map((route) => ({

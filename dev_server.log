@@ -34,3 +34,6 @@ See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host] {
  ○ Compiling /reserve ...
  ✓ Compiled /reserve in 1387ms
  GET /reserve 200 in 1829ms
+ ✓ Compiled in 416ms
+ ✓ Compiled in 177ms
+ ✓ Compiled in 153ms

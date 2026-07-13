@@ -7,8 +7,8 @@ export default function SchemaMarkup() {
     "@type": "BarOrPub",
     "name": siteConfig.name,
     "image": "https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&q=80&w=1200",
-    "@id": `https://sovereignpatia.com/#bar`,
-    "url": "https://sovereignpatia.com",
+    "@id": `https://sovereign.pixorastudios.com/#bar`,
+    "url": "https://sovereign.pixorastudios.com",
     "telephone": siteConfig.socials.phone,
     "priceRange": "$$$",
     "address": {

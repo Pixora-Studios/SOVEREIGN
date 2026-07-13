@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://sovereignpatia.com/sitemap.xml",
+    sitemap: "https://sovereign.pixorastudios.com/sitemap.xml",
   };
 }

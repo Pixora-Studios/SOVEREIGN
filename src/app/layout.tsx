@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.hero.desc,
-  metadataBase: new URL("https://sovereignpatia.com"),
+  metadataBase: new URL("https://sovereign.pixorastudios.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: `${siteConfig.name} — Patia, Bhubaneswar`,
     description: siteConfig.hero.desc,
-    url: "https://sovereignpatia.com",
+    url: "https://sovereign.pixorastudios.com",
     siteName: siteConfig.name,
     locale: "en_IN",
     type: "website",

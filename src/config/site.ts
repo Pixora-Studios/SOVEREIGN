@@ -36,7 +36,7 @@ export const siteConfig = {
     instagram: "https://instagram.com/sovereign.patia",
     whatsapp: "https://wa.me/919999999999",
     phone: "+91 999 999 9999",
-    email: "tables@sovereignpatia.com",
+    email: "tables@sovereign.pixorastudios.com",
   },
   nights: [
     {
