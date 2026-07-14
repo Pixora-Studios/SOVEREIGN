@@ -20,7 +20,28 @@ const links = [
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const pathname = usePathname();
+
+  // Scroll height reduction threshold triggers
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 80) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    // Run initially
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   // Disable scroll when mobile menu is open
   useEffect(() => {
@@ -38,33 +59,72 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full z-40 bg-gradient-to-b from-void/90 via-void/50 to-transparent border-b border-line/10 backdrop-blur-md transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 md:h-24 flex items-center justify-between">
-          {/* Logo / Brand Wordmark */}
-          <Link href="/" className="group flex items-center space-x-1.5 focus:outline-none">
-            <span className="font-display font-extrabold text-xl tracking-[0.25em] text-ink group-hover:text-accent transition-colors duration-300">
+      <header
+        className={`fixed top-0 left-0 w-full z-40 transition-all duration-400 ease-out ${
+          isScrolled
+            ? "h-16 bg-[#0a0a0b]/75 backdrop-blur-md border-b border-line/40"
+            : "h-[72px] bg-transparent border-b border-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+          {/* Logo / Brand Wordmark with staggered hover animation */}
+          <Link
+            href="/"
+            className="group flex items-center focus:outline-none py-2 relative"
+            onMouseEnter={() => setIsLogoHovered(true)}
+            onMouseLeave={() => setIsLogoHovered(false)}
+          >
+            <span
+              style={{
+                letterSpacing: isLogoHovered ? "0.32em" : "0.25em",
+                transform: isScrolled ? "scale(0.9)" : "scale(1)",
+                transformOrigin: "left center",
+              }}
+              className="font-display font-extrabold text-lg md:text-xl text-ink transition-all duration-300 ease-out"
+            >
               {siteConfig.name}
             </span>
+            {/* Staggered Underline draws in starting 80ms later */}
+            <span
+              className={`absolute bottom-0 left-0 h-[1px] bg-accent transition-all duration-300 ease-out`}
+              style={{
+                width: isLogoHovered ? "100%" : "0%",
+                transitionDelay: isLogoHovered ? "80ms" : "0ms",
+              }}
+            />
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8 h-full">
             {links.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="relative group py-2 focus:outline-none"
+                  className="relative group py-2 focus:outline-none flex flex-col justify-center h-full"
                 >
-                  <span className={`font-body font-medium text-sm tracking-wider uppercase transition-colors duration-300 ${
-                    isActive ? "text-accent" : "text-ink-dim hover:text-ink"
-                  }`}>
+                  <span
+                    className={`font-body font-medium text-xs tracking-wider uppercase transition-all duration-300 transform group-hover:-translate-y-0.5 ${
+                      isActive ? "text-accent" : "text-ink-dim hover:text-accent"
+                    }`}
+                  >
                     {link.label}
                   </span>
-                  <span className={`absolute bottom-0 left-0 h-[1px] bg-accent transition-all duration-300 ${
-                    isActive ? "w-full" : "w-0 group-hover:w-full"
-                  }`} />
+
+                  {/* Framer motion Shared layoutId indicator (pill/line morphs width/position) */}
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeNavIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-accent"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+
+                  {/* Non-active thin hover line drawing in from left to right */}
+                  {!isActive && (
+                    <span className="absolute bottom-0 left-0 h-[1px] bg-accent w-0 group-hover:w-full transition-all duration-300 ease-out" />
+                  )}
                 </Link>
               );
             })}
@@ -76,10 +136,10 @@ export default function Header() {
               <Magnetic>
                 <Link
                   href="/reserve"
-                  className="group flex items-center space-x-2 bg-accent hover:bg-accent-dim text-void font-body font-bold text-xs uppercase tracking-[0.2em] px-6 py-3 rounded-none transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_4px_20px_rgba(201,255,61,0.2)]"
+                  className="group flex items-center space-x-2 bg-accent hover:bg-accent-dim text-void font-body font-bold text-[10px] uppercase tracking-[0.2em] px-5 py-2.5 rounded-none transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_4px_20px_rgba(201,255,61,0.2)]"
                 >
                   <span>Reserve Table</span>
-                  <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                  <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
                 </Link>
               </Magnetic>
             </div>
@@ -96,7 +156,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile Full-Screen Overlay Nav */}
+      {/* Mobile Full-Screen Overlay Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -113,25 +173,25 @@ export default function Header() {
               {/* Spacer for offset alignment */}
             </div>
 
-            {/* Menu Links */}
+            {/* Menu Links with Staggered Upward Reveal */}
             <nav className="flex flex-col space-y-4 pt-10">
               {links.map((link, idx) => {
                 const isActive = pathname === link.href;
                 return (
                   <motion.div
                     key={link.href}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <Link
                       href={link.href}
                       className="group inline-flex items-center space-x-4"
                     >
-                      <span className="font-display font-bold text-3xl tracking-widest uppercase text-ink-faint group-hover:text-accent transition-colors duration-300">
+                      <span className="font-display font-bold text-2xl tracking-widest uppercase text-ink-faint group-hover:text-accent transition-colors duration-300">
                         0{idx + 1}
                       </span>
-                      <span className={`font-display font-extrabold text-4xl tracking-wider uppercase transition-colors duration-300 ${
+                      <span className={`font-display font-extrabold text-3xl tracking-wider uppercase transition-colors duration-300 ${
                         isActive ? "text-accent" : "text-ink hover:text-accent"
                       }`}>
                         {link.label}

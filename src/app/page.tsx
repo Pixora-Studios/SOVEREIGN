@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -13,6 +13,7 @@ import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import InstagramEmbed from "@/components/InstagramEmbed";
 import FAQSection from "@/components/FAQSection";
+import SplitType from "split-type";
 
 export default function Home() {
   const horizontalSectionRef = useRef<HTMLDivElement>(null);
@@ -20,15 +21,201 @@ export default function Home() {
   const nightsSectionRef = useRef<HTMLDivElement>(null);
   const nightsContentRef = useRef<HTMLDivElement>(null);
 
+  // Refs for load choreography
+  const heroRef = useRef<HTMLElement>(null);
+  const grainRef = useRef<HTMLDivElement>(null);
+  const vignetteRef = useRef<HTMLDivElement>(null);
+  const bgImageContainerRef = useRef<HTMLDivElement>(null);
+  const eyebrowRef = useRef<HTMLSpanElement>(null);
+  const wordmarkRef = useRef<HTMLHeadingElement>(null);
+  const quoteRef = useRef<HTMLDivElement>(null);
+  const ctaContainerRef = useRef<HTMLDivElement>(null);
+  const statusChipRef = useRef<HTMLDivElement>(null);
+  const scrollCueRef = useRef<HTMLDivElement>(null);
+
+  // State for live open status
+  const [liveStatusText, setLiveStatusText] = useState("Opens Thursday at 7 PM");
+
   useEffect(() => {
     // ----------------------------------------------------
-    // GSAP Pinned Horizontal Scroll (Desktop Only)
+    // Determine live status based on site hours config
     // ----------------------------------------------------
+    const updateLiveStatus = () => {
+      const now = new Date();
+      // Adjust to Bhubaneswar time (IST: UTC + 5:30)
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const istTime = new Date(utc + 3600000 * 5.5);
+      const day = istTime.getDay(); // 0 = Sun, 1 = Mon, ... 6 = Sat
+      const hours = istTime.getHours();
+
+      // siteConfig hours map to Days. Thursday=4, Friday=5, Saturday=6, Sunday=0
+      // Closed on Mon (1), Tue (2), Wed (3).
+      if (day === 4) { // Thursday
+        if (hours >= 19 || hours < 1) {
+          setLiveStatusText("Open Tonight · 7 PM – 1 AM");
+        } else {
+          setLiveStatusText("Opens Tonight at 7 PM");
+        }
+      } else if (day === 5) { // Friday
+        if (hours >= 19 || (hours === 0 || (hours === 1 && istTime.getMinutes() < 30))) {
+          setLiveStatusText("Open Tonight · 7 PM – 1:30 AM");
+        } else {
+          setLiveStatusText("Opens Tonight at 7 PM");
+        }
+      } else if (day === 6) { // Saturday
+        if (hours >= 19 || hours < 2) {
+          setLiveStatusText("Open Tonight · 7 PM – 2 AM");
+        } else {
+          setLiveStatusText("Opens Tonight at 7 PM");
+        }
+      } else if (day === 0) { // Sunday
+        if (hours >= 17) {
+          setLiveStatusText("Open Tonight · 5 PM – 12 AM");
+        } else {
+          setLiveStatusText("Opens Tonight at 5 PM");
+        }
+      } else {
+        // Closed days: Mon, Tue, Wed
+        setLiveStatusText("Opens Thursday at 7 PM");
+      }
+    };
+
+    updateLiveStatus();
+    const statusInterval = setInterval(updateLiveStatus, 60000);
+
+    return () => clearInterval(statusInterval);
+  }, []);
+
+  useEffect(() => {
+    // Register GSAP plugins
+    gsap.registerPlugin(ScrollTrigger);
+
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    let splitWordmark: SplitType | null = null;
     let triggerInstance: ScrollTrigger | null = null;
+    let nightsTrigger: ScrollTrigger | null = null;
 
+    // ----------------------------------------------------
+    // 1. HERO LOAD CHOREOGRAPHY & SCROLL TRIGGER ANIMATIONS
+    // ----------------------------------------------------
+    if (!prefersReduced) {
+      // Revert any split text first
+      if (wordmarkRef.current) {
+        splitWordmark = new SplitType(wordmarkRef.current, {
+          types: "chars",
+          tagName: "span",
+        });
+      }
+
+      // Initial state settings
+      gsap.set([grainRef.current, vignetteRef.current], { opacity: 0 });
+      gsap.set(bgImageContainerRef.current, { scale: 1 });
+      gsap.set(eyebrowRef.current, { opacity: 0, filter: "blur(12px)", y: -10 });
+      if (splitWordmark && splitWordmark.chars) {
+        gsap.set(splitWordmark.chars, { y: "120%", opacity: 0, filter: "blur(8px)" });
+      }
+      gsap.set(quoteRef.current, { opacity: 0, x: -30 });
+      gsap.set(ctaContainerRef.current, { opacity: 0, scale: 0.8 });
+      gsap.set(statusChipRef.current, { opacity: 0, x: -20 });
+      gsap.set(scrollCueRef.current, { opacity: 0, y: 30 });
+
+      const tl = gsap.timeline();
+
+      // 0.0s — Grain + vignette layers fade in
+      tl.to([grainRef.current, vignetteRef.current], {
+        opacity: 1,
+        duration: 1.5,
+        ease: "power2.out",
+      }, 0.0);
+
+      // 0.2s — Background image Ken Burns begins (represented by slow continuous drift)
+      tl.to(bgImageContainerRef.current, {
+        scale: 1.08,
+        duration: 30,
+        ease: "none",
+        repeat: -1,
+        yoyo: true,
+      }, 0.2);
+
+      // 0.4s — Eyebrow blurs in
+      tl.to(eyebrowRef.current, {
+        opacity: 1,
+        filter: "blur(0px)",
+        y: 0,
+        duration: 0.8,
+        ease: "power3.out",
+      }, 0.4);
+
+      // 0.7s — Wordmark character-reveal begins, staggered
+      if (splitWordmark && splitWordmark.chars) {
+        tl.to(splitWordmark.chars, {
+          y: "0%",
+          opacity: 1,
+          filter: "blur(0px)",
+          duration: 1.0,
+          stagger: 0.04,
+          ease: "power4.out",
+        }, 0.7);
+      }
+
+      // 1.3s — Quote + accent line fade/slide in
+      tl.to(quoteRef.current, {
+        opacity: 1,
+        x: 0,
+        duration: 0.8,
+        ease: "power3.out",
+      }, 1.3);
+
+      // 1.5s — CTA button scales in with slight overshoot (spring easing)
+      tl.to(ctaContainerRef.current, {
+        opacity: 1,
+        scale: 1,
+        duration: 1.0,
+        ease: "back.out(1.7)",
+      }, 1.5);
+
+      // 1.7s — Live-status chip fades in
+      tl.to(statusChipRef.current, {
+        opacity: 1,
+        x: 0,
+        duration: 0.8,
+        ease: "power3.out",
+      }, 1.7);
+
+      // 1.9s — Scroll cue fades in last
+      tl.to(scrollCueRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 1.0,
+        ease: "power2.out",
+      }, 1.9);
+
+      // Scrubbed opacity fade-out for Scroll Cue group over first 150px of scroll
+      if (heroRef.current && scrollCueRef.current) {
+        ScrollTrigger.create({
+          trigger: heroRef.current,
+          start: "top top",
+          end: "+=150",
+          scrub: true,
+          animation: gsap.to(scrollCueRef.current, {
+            opacity: 0,
+            y: -20,
+            ease: "none",
+          }),
+        });
+      }
+    } else {
+      // Fallback for reduced motion / mobile opacity handling
+      gsap.set([grainRef.current, vignetteRef.current, eyebrowRef.current, wordmarkRef.current, quoteRef.current, ctaContainerRef.current, statusChipRef.current, scrollCueRef.current], {
+        opacity: 1,
+      });
+    }
+
+    // ----------------------------------------------------
+    // 2. GSAP PINNED HORIZONTAL SCROLL (Desktop Only)
+    // ----------------------------------------------------
     if (!isMobile && !prefersReduced && horizontalSectionRef.current && horizontalScrollRef.current) {
       const scrollEl = horizontalScrollRef.current;
       const sections = scrollEl.querySelectorAll(".horizontal-panel");
@@ -69,9 +256,8 @@ export default function Home() {
     }
 
     // ----------------------------------------------------
-    // GSAP Nights pinned crossfade (Desktop Only)
+    // 3. GSAP NIGHTS PINNED CROSSFADE (Desktop Only)
     // ----------------------------------------------------
-    let nightsTrigger: ScrollTrigger | null = null;
     if (!isMobile && !prefersReduced && nightsSectionRef.current && nightsContentRef.current) {
       const slides = nightsContentRef.current.querySelectorAll(".night-slide");
 
@@ -107,6 +293,7 @@ export default function Home() {
     return () => {
       if (triggerInstance) triggerInstance.kill();
       if (nightsTrigger) nightsTrigger.kill();
+      if (splitWordmark) splitWordmark.revert();
       ScrollTrigger.getAll().forEach(st => st.kill());
     };
   }, []);
@@ -116,53 +303,113 @@ export default function Home() {
 
   return (
     <div className="relative w-full">
-      {/* 1. HERO SECTION */}
-      <section className="relative h-[90vh] flex flex-col justify-center items-center px-6 overflow-hidden bg-void">
-        {/* Animated full-bleed background shot */}
-        <div className="absolute inset-0 z-0">
+      {/* 1. HERO SECTION (Asymmetric Composition Redesign) */}
+      <section
+        ref={heroRef}
+        className="relative h-[95vh] md:h-screen flex flex-col justify-center px-6 md:px-16 overflow-hidden bg-void"
+      >
+        {/* BACKGROUND LAYERS */}
+        {/* Layer 1: Background image with slow Ken Burns drift container */}
+        <div ref={bgImageContainerRef} className="absolute inset-0 z-0 origin-center">
           <Image
             src="https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&q=80&w=1600"
             alt={`${siteConfig.name} Ambience`}
             fill
             priority
-            className="object-cover opacity-35 select-none pointer-events-none scale-105 animate-[pulse_25s_ease-in-out_infinite]"
+            className="object-cover opacity-35 select-none pointer-events-none"
           />
-          {/* Vignette & overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-void via-void/30 to-void/70" />
-          <div className="absolute inset-0 bg-gradient-to-r from-void/90 via-transparent to-void/90" />
         </div>
 
-        {/* Text Area */}
-        <div className="relative z-10 text-center max-w-5xl space-y-6">
-          <span className="block font-display font-bold text-xs md:text-sm tracking-[0.3em] text-accent animate-[pulse_3s_infinite] uppercase">
-            {siteConfig.tagline}
-          </span>
+        {/* Layer 1.5: Graded overlay blending #1C160E at center-bottom with --void edges */}
+        <div className="absolute inset-0 z-1 bg-[radial-gradient(circle_at_bottom_center,rgba(28,22,14,0.25)_0%,rgba(10,10,11,0.95)_80%)] pointer-events-none" />
 
-          <div className="overflow-hidden">
-            <h1 className="font-display font-extrabold fluid-hero uppercase tracking-[0.2em] leading-none text-ink">
+        {/* Layer 2: Film grain overlay (using a high-fidelity SVG turbulence filter to prevent 404 and maintain crisp grain) */}
+        <div
+          ref={grainRef}
+          className="absolute inset-0 z-2 pointer-events-none opacity-[0.04] mix-blend-overlay"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundSize: "200px 200px",
+          }}
+        />
+
+        {/* Layer 3: Vignette (radial-gradient darkening four corners) */}
+        <div
+          ref={vignetteRef}
+          className="absolute inset-0 z-3 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_40%,rgba(10,10,11,0.9)_100%)]"
+        />
+
+        {/* Layer 4: Content layer (asymmetric layout) */}
+        <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col justify-center h-full">
+          {/* Eyebrow - shifted off-center horizontally */}
+          <div className="w-full flex justify-center md:justify-start md:pl-[15%] mb-4">
+            <span
+              ref={eyebrowRef}
+              className="block font-display font-bold text-xs md:text-sm tracking-[0.3em] text-accent uppercase select-none"
+            >
+              {siteConfig.tagline}
+            </span>
+          </div>
+
+          {/* Sovereign Wordmark - Kept large and centered as the anchor */}
+          <div className="w-full text-center overflow-hidden py-1 mb-8">
+            <h1
+              ref={wordmarkRef}
+              className="font-display font-extrabold fluid-hero uppercase tracking-[0.18em] leading-none text-ink mx-auto select-none"
+            >
               {siteConfig.name}
             </h1>
           </div>
 
-          <p className="font-body text-sm md:text-lg text-ink-dim tracking-widest uppercase font-medium max-w-xl mx-auto pt-2">
-            &ldquo;{siteConfig.hero.subhead}&rdquo;
-          </p>
-
-          <div className="pt-8">
-            <Magnetic>
-              <Link
-                href="/reserve"
-                className="group flex items-center space-x-3 bg-accent text-void font-body font-bold text-xs uppercase tracking-[0.25em] px-8 py-4 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_4px_30px_rgba(201,255,61,0.25)]"
+          {/* Lower Content Group: Asymmetric placement (offset quote + button) */}
+          <div className="w-full flex flex-col md:flex-row justify-center md:justify-start md:pl-[12%] items-start gap-8">
+            <div className="flex flex-col space-y-8 items-start max-w-xl">
+              {/* Pull-quote treatment: offset quote with a thin vertical accent line */}
+              <div
+                ref={quoteRef}
+                className="flex items-stretch space-x-4 pl-1.5 md:pl-2"
               >
-                <span>Initialize Space</span>
-                <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-              </Link>
-            </Magnetic>
+                <div className="w-[1px] bg-accent/60 self-stretch flex-shrink-0" />
+                <p className="font-body text-xs md:text-sm text-ink-dim tracking-widest uppercase font-medium leading-relaxed">
+                  &ldquo;{siteConfig.hero.subhead}&rdquo;
+                </p>
+              </div>
+
+              {/* Single Hero CTA - Magnetic Button with Spring overshoot */}
+              <div ref={ctaContainerRef} className="pt-4 pl-1.5 md:pl-2">
+                <Magnetic>
+                  <Link
+                    href="/reserve"
+                    className="group flex items-center space-x-4 bg-accent text-void font-body font-bold text-xs uppercase tracking-[0.25em] px-8 py-4.5 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_4px_30px_rgba(201,255,61,0.25)]"
+                  >
+                    <span>Descend Into SOVEREIGN</span>
+                    <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                  </Link>
+                </Magnetic>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Scroll down indicator line */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 z-10 pointer-events-none select-none opacity-50">
+        {/* Floating Live-Status Chip in the bottom-left */}
+        <div
+          ref={statusChipRef}
+          className="absolute bottom-8 left-6 md:left-16 z-10 flex items-center space-x-3 bg-charcoal/80 backdrop-blur-md border border-line/50 px-4 py-2"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+          </span>
+          <span className="font-display font-bold text-[9px] md:text-xs tracking-widest text-ink uppercase">
+            {liveStatusText}
+          </span>
+        </div>
+
+        {/* Scroll down indicator line ("DESCEND") - scrubbed out over scroll */}
+        <div
+          ref={scrollCueRef}
+          className="absolute bottom-8 right-6 md:right-16 flex flex-col items-center space-y-2 z-10 pointer-events-none select-none opacity-60"
+        >
           <span className="font-display font-bold text-[9px] tracking-[0.25em] text-ink-dim uppercase">
             DESCEND
           </span>
